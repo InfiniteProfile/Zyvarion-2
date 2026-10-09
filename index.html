@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08090d">
+  <meta name="description" content="Zyvarion — One universe. Infinite identities.">
+  <title>Zyvarion — One Universe. Infinite Identities.</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Zyvarion home">
+      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><path d="M10 12.5 20 6l10 6.5v8L20 27l-10-6.5z"/><path d="M10 27.5 20 34l10-6.5v-8L20 13l-10 6.5z"/><path d="m10 12.5 20 15M30 12.5 10 27.5"/></svg>
+      <span><strong>ZYVARION</strong><small>ONE UNIVERSE. INFINITE IDENTITIES.</small></span>
+    </a>
+    <form id="search-form" class="search" role="search">
+      <label class="sr-only" for="search-input">Search by profile number or name</label>
+      <input id="search-input" type="search" placeholder="Find a profile number or name…" autocomplete="off">
+      <button type="submit">Find</button>
+    </form>
+  </header>
+
+  <main id="app">
+    <section id="directory-view" class="view">
+      <div class="section-head">
+        <div><p class="eyebrow">IDENTITY DIRECTORY</p><h1>Discover identities</h1></div>
+        <div class="counter"><span class="live-dot"></span> GENERATING ON DEMAND</div>
+      </div>
+      <p id="notice" class="notice" role="status" aria-live="polite">Every identity is generated from its stable identifier. Scroll to continue.</p>
+      <div id="directory" class="directory" aria-label="Generated profile directory"></div>
+      <div id="sentinel" class="sentinel" aria-hidden="true"></div>
+      <div id="loading" class="loading" hidden><span class="spinner"></span> Discovering identities…</div>
+      <div id="directory-error" class="error" hidden></div>
+    </section>
+
+    <section id="profile-view" class="view detail-view" hidden>
+      <button class="back-button" id="back-button" type="button">← Directory</button>
+      <div id="profile-detail"></div>
+    </section>
+
+    <section id="post-view" class="view detail-view" hidden>
+      <button class="back-button" id="post-back-button" type="button">← Back</button>
+      <div id="post-detail"></div>
+    </section>
+  </main>
+
+  <footer><span>ZYVARION</span><span>ONE UNIVERSE. INFINITE IDENTITIES.</span></footer>
+</body>
+</html>
