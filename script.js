@@ -13,16 +13,10 @@
   const postDetail = $("#post-detail");
   const searchInput = $("#search-input");
   const BATCH_SIZE = 24;
-  const OVERSCAN_ROWS = 2;
-  const ROW_HEIGHT_ESTIMATE = 174;
-  const GAP = 12;
   const cache = new Map();
   let nextId = 1n;
   let loadingBatch = false;
-  let observer = null;
-  let resizeObserver = null;
-  let columns = 4;
-  let rendered = [];
+  let loadCheckFrame = 0;
   let renderFrame = 0;
   let currentMode = "directory";
   let directoryScroll = 0;
@@ -125,11 +119,12 @@
     return 4;
   }
   function renderBatch() {
-    if (loadingBatch) return;
+    if (loadingBatch || currentMode !== "directory") return;
     loadingBatch = true;
     loading.hidden = false;
     requestAnimationFrame(() => {
       const frag = document.createDocumentFragment();
+      // IDs are generated sequentially from 1 and use BigInt, so there is no 99-profile cap.
       for (let i = 0; i < BATCH_SIZE; i++) {
         const p = profileFor(nextId.toString());
         if (!p) break;
@@ -137,57 +132,23 @@
         nextId += 1n;
       }
       directory.append(frag);
-      rendered.push(...Array.from(directory.children).slice(-BATCH_SIZE));
       loading.hidden = true;
       loadingBatch = false;
-      virtualize();
+      // If the page is still close to the bottom, immediately fill the remaining space.
+      // This avoids relying on a one-time IntersectionObserver event that can stall.
+      scheduleLoadCheck();
     });
   }
-  function virtualize() {
-    // Recycle card nodes into a fixed-size window while retaining a logical starting ID.
-    const all = Array.from(directory.children);
-    const cols = getColumnCount();
-    const rowHeight = ROW_HEIGHT_ESTIMATE + GAP;
-    const scrollY = window.scrollY;
-    const rect = directory.getBoundingClientRect();
-    const topInDoc = rect.top + scrollY;
-    const visibleTop = Math.max(0, Math.floor((scrollY - topInDoc) / rowHeight) - OVERSCAN_ROWS);
-    const visibleRows = Math.ceil(window.innerHeight / rowHeight) + OVERSCAN_ROWS * 2;
-    const keepCount = Math.max(BATCH_SIZE, visibleRows * cols);
-    if (all.length <= keepCount * 2) return;
-    const firstIndex = Math.min(all.length - keepCount, Math.max(0, visibleTop * cols));
-    const endIndex = Math.min(all.length, firstIndex + keepCount);
-    // Keep the latest cards close to the scroll position. Spacer heights preserve document geometry.
-    const before = all.slice(0, firstIndex);
-    const keep = all.slice(firstIndex, endIndex);
-    const after = all.slice(endIndex);
-    const beforeHeight = Math.floor(before.length / cols) * rowHeight;
-    const afterHeight = Math.floor(after.length / cols) * rowHeight;
-    directory.replaceChildren();
-    if (beforeHeight > 0) {
-      const spacer = make("div", "virtual-spacer");
-      spacer.style.gridColumn = "1 / -1";
-      spacer.style.height = beforeHeight + "px";
-      spacer.dataset.spacer = "before";
-      directory.append(spacer);
-    }
-    keep.forEach((el) => directory.append(el));
-    if (afterHeight > 0) {
-      const spacer = make("div", "virtual-spacer");
-      spacer.style.gridColumn = "1 / -1";
-      spacer.style.height = afterHeight + "px";
-      spacer.dataset.spacer = "after";
-      directory.append(spacer);
-    }
-    // For static client-side generation, retain the logical index for the next batch.
-    directory.dataset.virtualStart = String(firstIndex);
+  function nearDirectoryEnd() {
+    return window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 1400;
   }
-  function scheduleVirtualize() {
-    if (renderFrame) return;
-    renderFrame = requestAnimationFrame(() => {
-      renderFrame = 0;
-      if (currentMode === "directory") virtualize();
-    });
+  function checkForMore() {
+    loadCheckFrame = 0;
+    if (currentMode === "directory" && !loadingBatch && nearDirectoryEnd()) renderBatch();
+  }
+  function scheduleLoadCheck() {
+    if (loadCheckFrame) return;
+    loadCheckFrame = requestAnimationFrame(checkForMore);
   }
   function showOnly(mode) {
     currentMode = mode;
@@ -383,6 +344,7 @@
     showOnly("directory");
     if (!directory.children.length) renderBatch();
     window.scrollTo(0, directoryScroll || 0);
+    scheduleLoadCheck();
   }
   $("#search-form").addEventListener("submit", async event => {
     event.preventDefault();
@@ -421,22 +383,8 @@
     if (history.length > 1) history.back(); else navigate({});
   });
   window.addEventListener("popstate", routeFromUrl);
-  window.addEventListener("scroll", scheduleVirtualize, { passive: true });
-  window.addEventListener("resize", () => {
-    columns = getColumnCount();
-    scheduleVirtualize();
-  }, { passive: true });
-
-  if ("IntersectionObserver" in window) {
-    observer = new IntersectionObserver(entries => {
-      if (entries.some(entry => entry.isIntersecting) && currentMode === "directory") renderBatch();
-    }, { rootMargin: "900px 0px" });
-    observer.observe(sentinel);
-  } else {
-    window.addEventListener("scroll", () => {
-      if (currentMode === "directory" && window.innerHeight + window.scrollY >= document.body.offsetHeight - 700) renderBatch();
-    }, { passive: true });
-  }
+  window.addEventListener("scroll", scheduleLoadCheck, { passive: true });
+  window.addEventListener("resize", scheduleLoadCheck, { passive: true });
 
   // Keep the first screen useful even if observers are unavailable.
   routeFromUrl();
