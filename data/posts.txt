@@ -1,0 +1,18 @@
+# Zyvarion post manifest
+# Each post block starts with a standalone hyphen line.
+# Fields: id, profile, title, content, media (comma-separated URLs).
+# Add new blocks with unique stable IDs. Never reuse or change a published ID.
+-
+id: zyvarion-post-0001
+profile: 1
+title: First Discovery
+content: Welcome to my corner of Zyvarion.
+Every identity has a story waiting to be discovered.
+media:
+-
+id: zyvarion-post-0002
+profile: 123
+title: Another Discovery
+content: A civilization is made of connections, questions, and countless points of view.
+Hyphens inside ordinary text — like this — do not split a post.
+media:
